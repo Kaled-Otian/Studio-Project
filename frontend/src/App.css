@@ -1,0 +1,391 @@
+.counter {
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.3s;
+  margin-bottom: 24px;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.hero {
+  position: relative;
+
+  .base,
+  .framework,
+  .vite {
+    inset-inline: 0;
+    margin: 0 auto;
+  }
+
+  .base {
+    width: 170px;
+    position: relative;
+    z-index: 0;
+  }
+
+  .framework,
+  .vite {
+    position: absolute;
+  }
+
+  .framework {
+    z-index: 1;
+    top: 34px;
+    height: 28px;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg) scale(1.4);
+  }
+
+  .vite {
+    z-index: 0;
+    top: 107px;
+    height: 26px;
+    width: auto;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg) scale(0.8);
+  }
+}
+
+#center {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  place-content: center;
+  place-items: center;
+  flex-grow: 1;
+
+  @media (max-width: 1024px) {
+    padding: 32px 20px 24px;
+    gap: 18px;
+  }
+}
+
+#next-steps {
+  display: flex;
+  border-top: 1px solid var(--border);
+  text-align: left;
+
+  &>div {
+    flex: 1 1 0;
+    padding: 32px;
+
+    @media (max-width: 1024px) {
+      padding: 24px 20px;
+    }
+  }
+
+  .icon {
+    margin-bottom: 16px;
+    width: 22px;
+    height: 22px;
+  }
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+#docs {
+  border-right: 1px solid var(--border);
+
+  @media (max-width: 1024px) {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+#next-steps ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  margin: 32px 0 0;
+
+  a {
+    color: var(--text-h);
+    font-size: 16px;
+    border-radius: 6px;
+    background: var(--social-bg);
+    display: flex;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+
+    &:hover {
+      box-shadow: var(--shadow);
+    }
+
+    .button-icon {
+      height: 18px;
+      width: 18px;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    li {
+      flex: 1 1 calc(50% - 8px);
+    }
+
+    a {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+  }
+}
+
+#spacer {
+  height: 88px;
+  border-top: 1px solid var(--border);
+
+  @media (max-width: 1024px) {
+    height: 48px;
+  }
+}
+
+.ticks {
+  position: relative;
+  width: 100%;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4.5px;
+    border: 5px solid transparent;
+  }
+
+  &::before {
+    left: 0;
+    border-left-color: var(--border);
+  }
+
+  &::after {
+    right: 0;
+    border-right-color: var(--border);
+  }
+}
+
+/* ── react-big-calendar dark theme overrides ────────────────────────────── */
+.custom-calendar-wrapper .rbc-calendar {
+  flex: 1;
+  font-family: inherit;
+  color: var(--text-primary);
+}
+
+.custom-calendar-wrapper .rbc-toolbar {
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.custom-calendar-wrapper .rbc-toolbar button {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.custom-calendar-wrapper .rbc-toolbar button:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+}
+
+.custom-calendar-wrapper .rbc-toolbar button.rbc-active {
+  background: var(--accent-base);
+  color: white;
+  border-color: var(--accent-base);
+}
+
+.custom-calendar-wrapper .rbc-toolbar .rbc-toolbar-label {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.custom-calendar-wrapper .rbc-header {
+  padding: 10px 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--surface-border) !important;
+  background: rgba(0,0,0,0.15);
+}
+
+.custom-calendar-wrapper .rbc-header + .rbc-header {
+  border-left: 1px solid var(--surface-border) !important;
+}
+
+.custom-calendar-wrapper .rbc-month-view,
+.custom-calendar-wrapper .rbc-time-view {
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.custom-calendar-wrapper .rbc-month-row + .rbc-month-row {
+  border-top: 1px solid var(--surface-border);
+}
+
+.custom-calendar-wrapper .rbc-day-bg {
+  border-left: 1px solid var(--surface-border) !important;
+  transition: background 0.15s;
+}
+
+.custom-calendar-wrapper .rbc-day-bg:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.custom-calendar-wrapper .rbc-today {
+  background: rgba(200,114,18,0.08) !important;
+}
+
+.custom-calendar-wrapper .rbc-off-range-bg {
+  background: rgba(0,0,0,0.2);
+}
+
+.custom-calendar-wrapper .rbc-off-range {
+  color: var(--text-muted);
+}
+
+.custom-calendar-wrapper .rbc-date-cell {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.custom-calendar-wrapper .rbc-date-cell.rbc-now {
+  font-weight: 700;
+  color: var(--accent-base);
+}
+
+.custom-calendar-wrapper .rbc-event {
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+  font-size: 0.8rem !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+.custom-calendar-wrapper .rbc-event:focus {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 1px;
+}
+
+.custom-calendar-wrapper .rbc-event-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.custom-calendar-wrapper .rbc-show-more {
+  color: var(--accent-base);
+  font-weight: 600;
+  font-size: 0.75rem;
+  background: transparent !important;
+}
+
+.custom-calendar-wrapper .rbc-overlay {
+  background: var(--surface-color) !important;
+  border: 1px solid var(--surface-border) !important;
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  z-index: 100;
+}
+
+.custom-calendar-wrapper .rbc-overlay-header {
+  border-bottom: 1px solid var(--surface-border);
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+/* Time view */
+.custom-calendar-wrapper .rbc-time-header-content {
+  border-left: 1px solid var(--surface-border);
+}
+
+.custom-calendar-wrapper .rbc-time-content {
+  border-top: 1px solid var(--surface-border);
+}
+
+.custom-calendar-wrapper .rbc-timeslot-group {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.custom-calendar-wrapper .rbc-time-slot {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.custom-calendar-wrapper .rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.custom-calendar-wrapper .rbc-current-time-indicator {
+  background-color: var(--accent-base);
+  height: 2px;
+}
+
+/* Agenda view */
+.custom-calendar-wrapper .rbc-agenda-view table.rbc-agenda-table {
+  border: none;
+  color: var(--text-primary);
+}
+
+.custom-calendar-wrapper .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  border-bottom: 1px solid var(--surface-border);
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.15);
+}
+
+.custom-calendar-wrapper .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.custom-calendar-wrapper .rbc-agenda-view table.rbc-agenda-table tbody > tr + tr {
+  border-top: none;
+}
+
+.custom-calendar-wrapper .rbc-agenda-date-cell,
+.custom-calendar-wrapper .rbc-agenda-time-cell {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.custom-calendar-wrapper .rbc-agenda-event-cell {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.custom-calendar-wrapper .rbc-agenda-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+}
