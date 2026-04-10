@@ -33,15 +33,15 @@ app.set('io', io);
 
 io.on('connection', (socket) => {
   console.log('User connected to socket:', socket.id);
-  
+
   socket.on('join_conversation', (conversationId) => {
     socket.join(`conversation_${conversationId}`);
   });
-  
+
   socket.on('leave_conversation', (conversationId) => {
     socket.leave(`conversation_${conversationId}`);
   });
-  
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
@@ -68,8 +68,7 @@ const distPath = fs.existsSync(prodDist) ? prodDist : localDist;
 
 app.use(express.static(distPath));
 
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
-
 httpServer.listen(PORT, () => console.log(`Server running on port ${PORT} with WebSockets`));
