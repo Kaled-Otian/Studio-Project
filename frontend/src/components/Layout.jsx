@@ -217,8 +217,8 @@ export function ProtectedRoute() {
         </header>
 
         {/* Page Container */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: isMobileScreen ? '20px 16px' : '32px 40px', scrollBehavior: 'smooth' }}>
-          <div style={{ maxWidth: '1100px', margin: '0 auto', width: '100%', animation: 'fadeInUp 0.3s var(--ease-smooth)' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobileScreen ? '10px 10px' : '32px 40px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ maxWidth: '1100px', margin: '0 auto', width: '100%', flex: 1, display: 'flex', flexDirection: 'column', animation: 'fadeInUp 0.3s var(--ease-smooth)' }}>
             <Outlet />
           </div>
         </div>

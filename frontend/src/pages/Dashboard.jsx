@@ -45,7 +45,11 @@ export default function Dashboard() {
 
       setTasks(myPendingTasks.slice(0, 8));
     } catch (err) {
-      toast.error('Failed to load dashboard');
+      toast.error('Failed to load dashboard stats. Retrying or incomplete data.');
+      if(!stats) {
+        setStats({ active: 0, pending: 0, completed: 0, total: 0, tasksPending: 0, tasksInProgress: 0, adminData: null });
+        setTasks([]);
+      }
     } finally {
       setLoading(false);
     }

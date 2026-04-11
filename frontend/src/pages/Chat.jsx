@@ -224,7 +224,7 @@ export default function Chat() {
   const pinnedMessages = messages.filter(m => m.is_pinned && (!m.pin_expires_at || new Date(m.pin_expires_at) > new Date()));
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100dvh - var(--header-height, 52px) - 40px)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--surface-border)', overflow: 'hidden', position: 'relative' }}>
+    <div className="chat-container-main" style={{ display: 'flex', flex: 1, width: '100%', height: '100%', minHeight: '600px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--surface-border)', overflow: 'hidden', position: 'relative' }}>
 
       {/* ── Mobile Sidebar Overlay ── */}
       {mobileSidebarOpen && (
