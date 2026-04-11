@@ -67,7 +67,7 @@ export function ProtectedRoute() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh', background: 'var(--bg-primary)' }}>
       {/* Mobile overlay */}
       {sidebarOpen && isMobileScreen && (
         <div
@@ -185,7 +185,7 @@ export function ProtectedRoute() {
       </aside>
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100vh', overflow: 'hidden' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100dvh', overflow: 'hidden' }}>
         {/* Header */}
         <header style={{
           height: 'var(--header-height)',

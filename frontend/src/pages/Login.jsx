@@ -25,8 +25,35 @@ export default function Login() {
     }
   };
 
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    try {
+      // Direct fetch bypasses api interceptor to avoid token rules
+      const res = await fetch('http://localhost:5000/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send request');
+      
+      toast.success(data.message || 'If the email exists, a request has been submitted to Admins.');
+      setShowForgot(false);
+      setForgotEmail('');
+    } catch (err) {
+      toast.error(err.message || 'Error submitting request');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)' }}>
       <Toaster />
       <div className="glass glass-card" style={{ width: '100%', maxWidth: '400px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -61,11 +88,35 @@ export default function Login() {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
           
-          <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '0.9rem' }}>
+          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.9rem' }}>
+            <button type="button" onClick={() => setShowForgot(true)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', textDecoration: 'underline' }}>Forgot your password?</button>
+          </div>
+          
+          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.9rem' }}>
             <p style={{ color: 'var(--text-secondary)' }}>Don't have an account? <Link to="/register" style={{ color: 'var(--accent-base)', fontWeight: 500 }}>Create an account</Link></p>
           </div>
         </form>
       </div>
+
+      {showForgot && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="glass glass-card" style={{ width: '90%', maxWidth: '400px', position: 'relative' }}>
+            <h3 style={{ marginTop: 0 }}>Reset Password</h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Enter your email. If an account exists, a reset request will be sent to the studio admins.</p>
+            <form onSubmit={handleForgotPassword}>
+              <div className="form-group">
+                <input type="email" placeholder="you@studio.com" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required className="input" />
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={forgotLoading}>
+                  {forgotLoading ? 'Submitting...' : 'Request Reset'}
+                </button>
+                <button type="button" className="btn" onClick={() => setShowForgot(false)} disabled={forgotLoading}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

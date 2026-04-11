@@ -15,6 +15,8 @@ import tasksRoutes from './routes/tasks.js';
 import schedulesRoutes from './routes/schedules.js';
 import announcementsRoutes from './routes/announcements.js';
 import chatRoutes from './routes/chat.js';
+import analyticsRoutes from './routes/analytics.js';
+import { requestLogger, globalErrorHandler } from './middleware/logger.js';
 
 dotenv.config();
 
@@ -49,6 +51,7 @@ io.on('connection', (socket) => {
 
 app.use(cors());
 app.use(express.json());
+app.use(requestLogger);
 
 initDB().catch(console.error);
 
@@ -59,8 +62,12 @@ app.use('/api/tasks', tasksRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
+
+// Attach central error handler after all routes
+app.use(globalErrorHandler);
 
 const prodDist = path.join(__dirname, '../dist');
 const localDist = path.join(__dirname, '../../frontend/dist');

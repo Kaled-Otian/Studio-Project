@@ -173,6 +173,43 @@ router.patch('/conversations/:id/invisible', async (req, res) => {
   }
 });
 
+// Leave conversation
+router.delete('/conversations/:id/leave', async (req, res) => {
+  try {
+    await db.execute({
+      sql: 'DELETE FROM conversation_members WHERE conversation_id = ? AND user_id = ?',
+      args: [req.params.id, req.user.id]
+    });
+
+    const io = req.app.get('io');
+    if (io) io.to(`conversation_${req.params.id}`).emit('member_removed', { user_id: req.user.id });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to leave conversation' });
+  }
+});
+
+// Delete conversation (SUPER_ADMIN or Admin of conversation)
+router.delete('/conversations/:id', async (req, res) => {
+  try {
+    const conv = await db.execute({ sql: 'SELECT * FROM conversations WHERE id = ?', args: [req.params.id] });
+    if (!conv.rows.length) return res.status(404).json({ error: 'Not found' });
+
+    const isConvAdmin = parseInt(conv.rows[0].created_by) === parseInt(req.user.id);
+    if (req.user.role !== 'SUPER_ADMIN' && !isConvAdmin) {
+      return res.status(403).json({ error: 'Only SUPER_ADMIN or creator can delete conversations' });
+    }
+
+    await db.execute({ sql: 'DELETE FROM conversations WHERE id = ?', args: [req.params.id] });
+
+    // Since members and messages cascade delete, only notify UI to remove conversation
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete conversation' });
+  }
+});
+
 // ─── Messages ──────────────────────────────────────────────────────────────
 
 // GET messages in a conversation (with pagination)
@@ -187,14 +224,18 @@ router.get('/conversations/:id/messages', async (req, res) => {
       sql: 'SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ?',
       args: [convId, req.user.id]
     });
-    if (!isMember.rows.length) return res.status(403).json({ error: 'Not a member of this conversation' });
+    if (!isMember.rows.length && req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Not a member of this conversation' });
 
     const whereClause = before ? 'AND m.created_at < ?' : '';
     const queryArgs = before ? [convId, before, limit] : [convId, limit];
 
     const result = await db.execute({
-      sql: `SELECT m.*, u.name as user_name, u.abbreviation
-            FROM messages m JOIN users u ON m.user_id = u.id
+      sql: `SELECT m.*, u.name as user_name, u.abbreviation, 
+                   rm.content as reply_content, ru.name as reply_user_name
+            FROM messages m 
+            JOIN users u ON m.user_id = u.id
+            LEFT JOIN messages rm ON m.reply_to_id = rm.id
+            LEFT JOIN users ru ON rm.user_id = ru.id
             WHERE m.conversation_id = ? AND m.deleted_at IS NULL ${whereClause}
             ORDER BY m.created_at DESC LIMIT ?`,
       args: queryArgs
@@ -217,11 +258,15 @@ router.get('/conversations/:id/messages/since', async (req, res) => {
       sql: 'SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ?',
       args: [req.params.id, req.user.id]
     });
-    if (!isMember.rows.length) return res.status(403).json({ error: 'Not a member' });
+    if (!isMember.rows.length && req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Not a member' });
 
     const result = await db.execute({
-      sql: `SELECT m.*, u.name as user_name, u.abbreviation
-            FROM messages m JOIN users u ON m.user_id = u.id
+      sql: `SELECT m.*, u.name as user_name, u.abbreviation,
+                   rm.content as reply_content, ru.name as reply_user_name
+            FROM messages m 
+            JOIN users u ON m.user_id = u.id
+            LEFT JOIN messages rm ON m.reply_to_id = rm.id
+            LEFT JOIN users ru ON rm.user_id = ru.id
             WHERE m.conversation_id = ? AND m.created_at > ? AND m.deleted_at IS NULL
             ORDER BY m.created_at ASC`,
       args: [req.params.id, since]
@@ -236,8 +281,13 @@ router.get('/conversations/:id/messages/since', async (req, res) => {
 // POST send message
 router.post('/conversations/:id/messages', async (req, res) => {
   try {
-    const { content } = req.body;
-    if (!content?.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
+    let { content, reply_to_id } = req.body;
+    
+    // Strict sanitization: remove leading zeros/spaces matching "00" or similar bugs and trim
+    if (typeof content !== 'string') content = String(content || '');
+    content = content.replace(/^0+/, '').trim(); // Prevent "00" inputs bug
+
+    if (!content) return res.status(400).json({ error: 'Message cannot be empty' });
 
     const isMember = await db.execute({
       sql: 'SELECT 1 FROM conversation_members WHERE conversation_id = ? AND user_id = ?',
@@ -246,12 +296,23 @@ router.post('/conversations/:id/messages', async (req, res) => {
     if (!isMember.rows.length) return res.status(403).json({ error: 'Not a member of this conversation' });
 
     const result = await db.execute({
-      sql: `INSERT INTO messages (conversation_id, user_id, content) VALUES (?, ?, ?) RETURNING *`,
-      args: [req.params.id, req.user.id, content.trim()]
+      sql: `INSERT INTO messages (conversation_id, user_id, content, reply_to_id) VALUES (?, ?, ?, ?) RETURNING *`,
+      args: [req.params.id, req.user.id, content, reply_to_id || null]
     });
 
-    const userRes = await db.execute({ sql: 'SELECT name, abbreviation FROM users WHERE id = ?', args: [req.user.id] });
-    const msg = { ...result.rows[0], user_name: userRes.rows[0]?.name, abbreviation: userRes.rows[0]?.abbreviation };
+    // Fetch message with reply data formatting
+    const msgDataRes = await db.execute({
+      sql: `SELECT m.*, u.name as user_name, u.abbreviation,
+                   rm.content as reply_content, ru.name as reply_user_name
+            FROM messages m
+            JOIN users u ON m.user_id = u.id
+            LEFT JOIN messages rm ON m.reply_to_id = rm.id
+            LEFT JOIN users ru ON rm.user_id = ru.id
+            WHERE m.id = ?`,
+      args: [result.rows[0].id]
+    });
+    
+    const msg = msgDataRes.rows[0];
     
     const io = req.app.get('io');
     if (io) io.to(`conversation_${req.params.id}`).emit('new_message', msg);

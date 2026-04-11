@@ -100,7 +100,7 @@ router.patch('/:id/status', async (req, res) => {
 
     // Only the assigned person can update status
     const task = await db.execute({
-      sql: 'SELECT assigned_to, assigned_by FROM admin_tasks WHERE id = ?',
+      sql: 'SELECT assigned_to, assigned_by, shoot_id FROM admin_tasks WHERE id = ?',
       args: [req.params.id]
     });
     if (task.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
@@ -117,6 +117,10 @@ router.patch('/:id/status', async (req, res) => {
     if (status) { updates.push('status = ?'); args.push(status); }
     if (completed_count !== undefined) { updates.push('completed_count = ?'); args.push(completed_count); }
     if (req.body.incomplete_count !== undefined) { updates.push('incomplete_count = ?'); args.push(req.body.incomplete_count); }
+    
+    let newProgress = null;
+    let parentShootId = task.rows[0].shoot_id;
+
     if (updates.length > 0) {
       args.push(req.params.id);
       await db.execute({
@@ -125,8 +129,30 @@ router.patch('/:id/status', async (req, res) => {
       });
     }
 
+    // Auto-sync progress to parent Shoot
+    if (parentShootId && (completed_count !== undefined || status === 'done')) {
+      const taskMeta = await db.execute({ sql: 'SELECT completed_count, target_count, status FROM admin_tasks WHERE id = ?', args: [req.params.id] });
+      if (taskMeta.rows.length) {
+        let t = taskMeta.rows[0];
+        if (t.status === 'done' || (t.target_count > 0 && t.completed_count >= t.target_count)) {
+           newProgress = 100;
+        } else if (t.target_count > 0) {
+           newProgress = Math.floor((t.completed_count / t.target_count) * 100);
+        }
+
+        if (newProgress !== null) {
+          await db.execute({ sql: 'UPDATE shoots SET progress = ?, task_status = ? WHERE id = ?', args: [newProgress, t.status, parentShootId] });
+        }
+      }
+    }
+
     const io = req.app.get('io');
-    if (io) io.emit('task_updated', { id: req.params.id, status, completed_count, incomplete_count: req.body.incomplete_count });
+    if (io) {
+      io.emit('task_updated', { id: req.params.id, status, completed_count, incomplete_count: req.body.incomplete_count });
+      if (parentShootId && newProgress !== null) {
+        io.emit('shoot_updated', { id: parentShootId, progress: newProgress, task_status: status });
+      }
+    }
 
     res.json({ success: true });
   } catch (error) {

@@ -216,11 +216,34 @@ export async function initDB() {
     "ALTER TABLE admin_tasks ADD COLUMN incomplete_count INTEGER DEFAULT 0",
     "ALTER TABLE admin_tasks ADD COLUMN is_main_editor INTEGER DEFAULT 0",
     "ALTER TABLE conversation_members ADD COLUMN is_invisible INTEGER DEFAULT 0",
-    "ALTER TABLE shoots ADD COLUMN created_at TEXT DEFAULT (datetime('now'))"
+    "ALTER TABLE shoots ADD COLUMN created_at TEXT DEFAULT (datetime('now'))",
+    "ALTER TABLE messages ADD COLUMN reply_to_id INTEGER"
   ];
   for (const sql of migrations) {
     try { await db.execute(sql); } catch (_) {}
   }
+
+  // ─── NEW: Audit & Auth ─────────────────────────────────────────────────────
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS password_reset_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      resolved_at TEXT,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      action TEXT NOT NULL,
+      details TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
 
   // Safe unique indexes (idempotent — CREATE IF NOT EXISTS)
   try { await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_schedule_attendees_unique ON schedule_attendees(schedule_id, user_id)"); } catch (_) {}

@@ -4,15 +4,15 @@
   /* Color System */
   --bg-primary: #0a0f1a;
   --bg-secondary: #0f1629;
-  --surface-primary: rgba(22, 30, 50, 0.65);
-  --surface-hover: rgba(28, 38, 62, 0.8);
-  --surface-border: rgba(255, 255, 255, 0.07);
-  --surface-border-strong: rgba(255, 255, 255, 0.13);
-  --surface-color: #161e32;
+  --surface-primary: rgba(15, 23, 42, 0.45);
+  --surface-hover: rgba(30, 41, 59, 0.55);
+  --surface-border: rgba(255, 255, 255, 0.05);
+  --surface-border-strong: rgba(255, 255, 255, 0.1);
+  --surface-color: #111827;
 
-  --text-primary: #e8ecf4;
-  --text-secondary: #8b95ab;
-  --text-muted: #4a5568;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 
   --accent-base: #c87212;
   --accent-hover: #a85f0e;
@@ -85,7 +85,7 @@ body {
     radial-gradient(ellipse at 85% 100%, rgba(59, 130, 246, 0.03) 0%, transparent 50%);
   background-attachment: fixed;
   color: var(--text-primary);
-  min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.55;
   font-size: var(--font-base);
   -webkit-font-smoothing: antialiased;

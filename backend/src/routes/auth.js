@@ -6,6 +6,18 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Centralized audit logger
+export const logAudit = async (userId, action, details) => {
+  try {
+    await db.execute({
+      sql: 'INSERT INTO audit_logs (user_id, action, details) VALUES (?, ?, ?)',
+      args: [userId || null, action, JSON.stringify(details || {})]
+    });
+  } catch (err) {
+    console.error('Audit log failed:', err);
+  }
+};
+
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -118,6 +130,41 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch user data' });
+  }
+});
+
+// POST /auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const user = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: [email] });
+    if (user.rows.length === 0) {
+      // Don't leak user existence
+      return res.json({ success: true, message: 'If the email exists, request submitted.' });
+    }
+
+    // Check existing pending
+    const existingReq = await db.execute({
+      sql: "SELECT id FROM password_reset_requests WHERE user_id = ? AND status = 'pending'",
+      args: [user.rows[0].id]
+    });
+
+    if (existingReq.rows.length === 0) {
+      await db.execute({
+        sql: 'INSERT INTO password_reset_requests (user_id) VALUES (?)',
+        args: [user.rows[0].id]
+      });
+    }
+
+    // Log the request
+    await logAudit(user.rows[0].id, 'FORGOT_PASSWORD_REQUEST', { email });
+
+    res.json({ success: true, message: 'Password reset request submitted to Admins.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error processing request' });
   }
 });
 

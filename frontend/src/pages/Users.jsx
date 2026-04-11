@@ -24,6 +24,8 @@ export default function Users() {
 
   if (!isAdminUser) return <Navigate to="/" />;
 
+  const [requests, setRequests] = useState([]);
+
   const fetchUsers = async () => {
     try {
       const res = await api.get('/users');
@@ -35,12 +37,26 @@ export default function Users() {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchRequests = async () => {
+    if (!isSuperAdminUser) return;
+    try {
+      const res = await api.get('/users/password-requests');
+      setRequests(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => { 
+    fetchUsers(); 
+    fetchRequests();
+  }, [isSuperAdminUser]);
 
   const handleEdit = (u) => {
     setEditingUser(u);
     setEditForm({
       name: u.name,
+      email: u.email,
       job_title: u.job_title || '',
       abbreviation: u.abbreviation || '',
       role: u.role,
@@ -126,6 +142,40 @@ export default function Users() {
         </div>
       </div>
 
+      {isSuperAdminUser && requests.length > 0 && (
+        <div className="glass glass-card" style={{ marginBottom: '24px', border: '1px solid var(--accent-base)' }}>
+          <h3 style={{ marginTop: 0, color: 'var(--accent-base)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Key size={18} /> Pending Password Reset Requests
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {requests.map(req => (
+              <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 600 }}>{req.name}</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{req.email}</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Requested: {new Date(req.created_at).toLocaleString()}</p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn btn-primary" style={{ padding: '6px 16px', fontSize: '0.85rem' }} onClick={() => {
+                    const pwd = window.prompt(`Enter NEW password for ${req.name}:`);
+                    if (!pwd) return;
+                    api.post(`/users/password-requests/${req.id}/resolve`, { action: 'approve', new_password: pwd })
+                      .then(() => { toast.success('Approved and password set'); fetchRequests(); })
+                      .catch(e => toast.error(e.response?.data?.error || 'Failed to approve'));
+                  }}>Approve & Set Password</button>
+                  <button className="btn" style={{ padding: '6px 16px', fontSize: '0.85rem', color: 'var(--danger-color)' }} onClick={() => {
+                    if (!window.confirm(`Reject password reset for ${req.name}?`)) return;
+                    api.post(`/users/password-requests/${req.id}/resolve`, { action: 'reject' })
+                      .then(() => { toast.success('Request rejected'); fetchRequests(); })
+                      .catch(e => toast.error('Failed to reject'));
+                  }}>Reject</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Create User Modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create New User" maxWidth="500px">
         <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -154,7 +204,10 @@ export default function Users() {
       <Modal open={!!editingUser} onClose={() => setEditingUser(null)} title={`Edit ${editingUser?.name}`} maxWidth="500px">
         {editingUser && (
           <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="form-group" style={{ margin: 0 }}><label>Name</label><input className="input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-group" style={{ margin: 0 }}><label>Name</label><input className="input" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required /></div>
+              <div className="form-group" style={{ margin: 0 }}><label>Email</label><input type="email" className="input" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} required /></div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group" style={{ margin: 0 }}><label>Job Title</label><input className="input" value={editForm.job_title} onChange={e => setEditForm({ ...editForm, job_title: e.target.value })} placeholder="Optional" /></div>
               <div className="form-group" style={{ margin: 0 }}><label>Initials</label><input className="input" value={editForm.abbreviation} onChange={e => setEditForm({ ...editForm, abbreviation: e.target.value })} maxLength={4} /></div>
@@ -249,18 +302,32 @@ export default function Users() {
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          {canManage && (
-                            <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', border: '1px solid var(--surface-border)' }} onClick={() => handleEdit(u)}>
-                              <Edit2 size={13} /> Edit
-                            </button>
-                          )}
-                          {isSuperAdminUser && (
-                            <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'rgba(239,68,68,0.08)', color: 'var(--danger-color)', border: '1px solid rgba(239,68,68,0.2)' }} onClick={() => { setResetPasswordId(u.id); setEditingUser(null); }}>
-                              <Key size={13} /> Password
-                            </button>
-                          )}
-                        </div>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            {canManage && (
+                              <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', border: '1px solid var(--surface-border)' }} onClick={() => handleEdit(u)}>
+                                <Edit2 size={13} /> Edit
+                              </button>
+                            )}
+                            {isSuperAdminUser && (
+                              <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'rgba(239,68,68,0.08)', color: 'var(--danger-color)', border: '1px solid rgba(239,68,68,0.2)' }} onClick={() => { setResetPasswordId(u.id); setEditingUser(null); }}>
+                                <Key size={13} /> Password
+                              </button>
+                            )}
+                            {isSuperAdminUser && parseInt(u.id) !== parseInt(user.id) && (
+                              <button className="btn" style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'rgba(239,68,68,0.15)', color: 'var(--danger-color)', border: '1px solid var(--danger-color)' }} onClick={async () => {
+                                if (!window.confirm(`Are you sure you want to PERMANENTLY delete ${u.name}? This cannot be undone and will fail if they have linked records. Consider deactivating instead.`)) return;
+                                try {
+                                  await api.delete(`/users/${u.id}`);
+                                  toast.success('User permanently deleted');
+                                  fetchUsers();
+                                } catch (err) {
+                                  toast.error(err.response?.data?.error || 'Failed to delete user');
+                                }
+                              }}>
+                                Delete
+                              </button>
+                            )}
+                          </div>
                       </td>
                     </tr>
                   );

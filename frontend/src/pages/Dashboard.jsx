@@ -17,12 +17,16 @@ export default function Dashboard() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [shootsRes, tasksRes] = await Promise.all([
+      const promises = [
         api.get('/shoots'),
         api.get('/tasks')
-      ]);
-      const all = shootsRes.data;
-      const allTasks = tasksRes.data;
+      ];
+      if (hasRole(user, 'ADMIN')) promises.push(api.get('/analytics'));
+
+      const results = await Promise.all(promises);
+      const all = results[0].data;
+      const allTasks = results[1].data;
+      const analyticsData = hasRole(user, 'ADMIN') ? results[2].data : null;
 
       // Filter tasks based on role
       const myPendingTasks = hasRole(user, 'ADMIN')
@@ -36,6 +40,7 @@ export default function Dashboard() {
         total: all.length,
         tasksPending: myPendingTasks.filter(t => t.status === 'pending').length,
         tasksInProgress: myPendingTasks.filter(t => t.status === 'in_progress').length,
+        adminData: analyticsData // from analytics endpoint
       });
 
       setTasks(myPendingTasks.slice(0, 8));
@@ -116,6 +121,45 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Admin Analytics Block */}
+      {hasRole(user, 'ADMIN') && stats.adminData && (
+        <div style={{ marginBottom: '32px' }}>
+          <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={18} color="var(--accent-base)" /> System Analytics & Audit
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+            <div className="glass glass-card" style={{ padding: '16px' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total Users</p>
+              <h2 style={{ margin: '4px 0 0', fontSize: '1.5rem', color: 'var(--text-primary)' }}>{stats.adminData.totalUsers} <span style={{fontSize: '0.9rem', color: 'var(--text-muted)'}}>({stats.adminData.activeUsers} Active)</span></h2>
+            </div>
+            <div className="glass glass-card" style={{ padding: '16px' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Global Tasks Completed</p>
+              <h2 style={{ margin: '4px 0 0', fontSize: '1.5rem', color: 'var(--text-primary)' }}>{stats.adminData.tasksCompleted}</h2>
+            </div>
+            <div className="glass glass-card" style={{ padding: '16px' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Active Shoots Context</p>
+              <h2 style={{ margin: '4px 0 0', fontSize: '1.5rem', color: 'var(--text-primary)' }}>{stats.adminData.shootsInProgress}</h2>
+            </div>
+          </div>
+          
+          <div className="glass glass-card" style={{ padding: '16px' }}>
+            <p style={{ margin: '0 0 12px', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Recent Activity Logs</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {stats.adminData.recentLogs.length === 0 ? (
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No logs yet.</p>
+              ) : (
+                stats.adminData.recentLogs.map((log, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8px', padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '0.85rem' }}><strong style={{ color: 'var(--accent-base)' }}>{log.user_name || 'System'}</strong>: {log.action}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{new Date(log.created_at).toLocaleString()}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tasks Panel */}
       <div className="glass glass-card">
