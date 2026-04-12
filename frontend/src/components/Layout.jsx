@@ -1,4 +1,4 @@
-import { Navigate, Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, api } from '../context/AuthContext';
 import { LogOut, LayoutDashboard, Camera, Users as UsersIcon, Menu, X, User, ClipboardList, CalendarDays, Megaphone, MessageSquare } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -11,6 +11,10 @@ export function ProtectedRoute() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMobileScreen, setIsMobileScreen] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Detect if the current page needs full-height layout (no scroll wrapper)
+  const isFullHeightPage = location.pathname === '/chat';
 
   useEffect(() => {
     if (!user) return;
@@ -29,9 +33,7 @@ export function ProtectedRoute() {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
       setIsMobileScreen(mobile);
-      if (!mobile && !sidebarOpen) {
-        // Option: Auto open on desktop? Let's leave user preference.
-      } else if (mobile && sidebarOpen) {
+      if (mobile && sidebarOpen) {
         setSidebarOpen(false);
       }
     };
@@ -40,7 +42,7 @@ export function ProtectedRoute() {
   }, [sidebarOpen]);
 
   if (loading) return <div className="loading-spinner"></div>;
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" replace />;
 
   const navLinkStyle = ({ isActive }) => ({
     display: 'flex',
@@ -67,7 +69,7 @@ export function ProtectedRoute() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh', background: 'var(--bg-primary)' }}>
+    <div style={{ display: 'flex', height: '100dvh', background: 'var(--bg-primary)', overflow: 'hidden' }}>
       {/* Mobile overlay */}
       {sidebarOpen && isMobileScreen && (
         <div
@@ -216,9 +218,26 @@ export function ProtectedRoute() {
           </div>
         </header>
 
-        {/* Page Container */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: isMobileScreen ? '10px 10px' : '32px 40px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ maxWidth: '1100px', margin: '0 auto', width: '100%', flex: 1, display: 'flex', flexDirection: 'column', animation: 'fadeInUp 0.3s var(--ease-smooth)' }}>
+        {/* Page Container — flex for Chat, scroll for other pages */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: isFullHeightPage ? 'hidden' : 'auto',
+          padding: isFullHeightPage
+            ? (isMobileScreen ? '8px' : '16px')
+            : (isMobileScreen ? '16px 12px' : '32px 40px'),
+        }}>
+          <div style={{
+            maxWidth: isFullHeightPage ? 'none' : '1100px',
+            margin: isFullHeightPage ? '0' : '0 auto',
+            width: '100%',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            animation: 'fadeInUp 0.3s var(--ease-smooth)'
+          }}>
             <Outlet />
           </div>
         </div>

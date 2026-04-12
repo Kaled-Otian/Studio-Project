@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth, api } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { Camera, CheckSquare, Clock, ClipboardList, ArrowRight, AlertCircle, TrendingUp } from 'lucide-react';
@@ -8,25 +8,37 @@ import toast from 'react-hot-toast';
 const ROLES = { SUPER_ADMIN: 3, ADMIN: 2, USER: 1 };
 const hasRole = (user, minRole) => (ROLES[user?.role] || 0) >= ROLES[minRole];
 
+const EMPTY_STATS = { active: 0, pending: 0, completed: 0, total: 0, tasksPending: 0, tasksInProgress: 0, adminData: null };
+
 export default function Dashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState(EMPTY_STATS);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const { socket } = useSocket();
+  const toastShown = useRef(false);
 
   const fetchAll = useCallback(async () => {
     try {
-      const promises = [
-        api.get('/shoots'),
-        api.get('/tasks')
-      ];
-      if (hasRole(user, 'ADMIN')) promises.push(api.get('/analytics'));
+      // Fetch shoots and tasks independently — don't let analytics failure kill everything
+      const [shootsRes, tasksRes] = await Promise.all([
+        api.get('/shoots').catch(() => ({ data: [] })),
+        api.get('/tasks').catch(() => ({ data: [] }))
+      ]);
 
-      const results = await Promise.all(promises);
-      const all = results[0].data;
-      const allTasks = results[1].data;
-      const analyticsData = hasRole(user, 'ADMIN') ? results[2].data : null;
+      const all = shootsRes.data || [];
+      const allTasks = tasksRes.data || [];
+
+      // Fetch analytics separately — this is optional and admin-only
+      let analyticsData = null;
+      if (hasRole(user, 'ADMIN')) {
+        try {
+          const analyticsRes = await api.get('/analytics');
+          analyticsData = analyticsRes.data;
+        } catch {
+          // Analytics failure is non-critical
+        }
+      }
 
       // Filter tasks based on role
       const myPendingTasks = hasRole(user, 'ADMIN')
@@ -40,15 +52,15 @@ export default function Dashboard() {
         total: all.length,
         tasksPending: myPendingTasks.filter(t => t.status === 'pending').length,
         tasksInProgress: myPendingTasks.filter(t => t.status === 'in_progress').length,
-        adminData: analyticsData // from analytics endpoint
+        adminData: analyticsData
       });
 
       setTasks(myPendingTasks.slice(0, 8));
     } catch (err) {
-      toast.error('Failed to load dashboard stats. Retrying or incomplete data.');
-      if(!stats) {
-        setStats({ active: 0, pending: 0, completed: 0, total: 0, tasksPending: 0, tasksInProgress: 0, adminData: null });
-        setTasks([]);
+      console.error('Dashboard fetch error:', err);
+      if (!toastShown.current) {
+        toast.error('Some dashboard data could not load.');
+        toastShown.current = true;
       }
     } finally {
       setLoading(false);
@@ -77,7 +89,6 @@ export default function Dashboard() {
   }, [socket, fetchAll]);
 
   if (loading) return <div className="loading-spinner"></div>;
-  if (!stats) return null;
 
   const statCards = [
     { label: 'Active Shoots', value: stats.active, icon: <Camera size={22}/>, color: 'var(--accent-base)', bg: 'var(--accent-glow)', link: '/shoots?status=Shooting' },
@@ -142,7 +153,7 @@ export default function Dashboard() {
               <h2 style={{ margin: '4px 0 0', fontSize: '1.5rem', color: 'var(--text-primary)' }}>{stats.adminData.tasksCompleted}</h2>
             </div>
             <div className="glass glass-card" style={{ padding: '16px' }}>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Active Shoots Context</p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Active Shoots</p>
               <h2 style={{ margin: '4px 0 0', fontSize: '1.5rem', color: 'var(--text-primary)' }}>{stats.adminData.shootsInProgress}</h2>
             </div>
           </div>
@@ -150,13 +161,13 @@ export default function Dashboard() {
           <div className="glass glass-card" style={{ padding: '16px' }}>
             <p style={{ margin: '0 0 12px', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Recent Activity Logs</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {stats.adminData.recentLogs.length === 0 ? (
+              {(!stats.adminData.recentLogs || stats.adminData.recentLogs.length === 0) ? (
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>No logs yet.</p>
               ) : (
                 stats.adminData.recentLogs.map((log, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8px', padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', gap: '12px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.85rem' }}><strong style={{ color: 'var(--accent-base)' }}>{log.user_name || 'System'}</strong>: {log.action}</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{new Date(log.created_at).toLocaleString()}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString()}</span>
                   </div>
                 ))
               )}

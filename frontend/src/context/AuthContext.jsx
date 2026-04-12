@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -18,19 +18,23 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Bootstrap auth state from localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     if (storedUser && token) {
-      // Set immediately from cache so UI renders fast
-      setUser(JSON.parse(storedUser));
-      // Then refresh from DB to catch any profile/role changes
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+      // Refresh from DB in background — non-blocking
       api.get('/auth/me').then(res => {
         const fresh = res.data;
         localStorage.setItem('user', JSON.stringify(fresh));
         setUser(fresh);
       }).catch(() => {
-        // Token expired or user deleted — auto-logout
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
@@ -55,26 +59,29 @@ export function AuthProvider({ children }) {
     return () => api.interceptors.response.eject(interceptor);
   }, []);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
     const { token, user: userData } = res.data;
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-  };
+    return userData;
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-  };
+  }, []);
 
   // Sync profile updates immediately to context + localStorage
-  const updateUser = (data) => {
-    const updated = { ...user, ...data };
-    localStorage.setItem('user', JSON.stringify(updated));
-    setUser(updated);
-  };
+  const updateUser = useCallback((data) => {
+    setUser(prev => {
+      const updated = { ...prev, ...data };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>

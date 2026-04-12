@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth, api } from '../context/AuthContext';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import logo from '../assets/mulhim Final2.png';
 
@@ -8,8 +8,9 @@ export default function Register() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const { user, login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  if (user) return <Navigate to="/" />;
+  if (user) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,6 +19,7 @@ export default function Register() {
       await api.post('/auth/register', formData);
       toast.success('Account created! Logging in...');
       await login(formData.email, formData.password);
+      navigate('/', { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Registration failed');
     } finally {

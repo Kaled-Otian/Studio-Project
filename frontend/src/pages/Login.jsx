@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import logo from '../assets/mulhim Final2.png';
 
@@ -9,8 +9,10 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const { login, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  if (user) return <Navigate to="/" />;
+  // If already authenticated, redirect immediately
+  if (user) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,6 +20,8 @@ export default function Login() {
     try {
       await login(email, password);
       toast.success('Logged in successfully!');
+      // Force imperative navigation to guarantee route change
+      navigate('/', { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to login');
     } finally {
@@ -33,8 +37,8 @@ export default function Login() {
     e.preventDefault();
     setForgotLoading(true);
     try {
-      // Direct fetch bypasses api interceptor to avoid token rules
-      const res = await fetch('http://localhost:5000/api/auth/forgot-password', {
+      const baseURL = import.meta.env.DEV ? 'http://localhost:5000/api' : '/api';
+      const res = await fetch(`${baseURL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail })
