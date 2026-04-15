@@ -26,18 +26,20 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = [
-  'https://mulhimstudio.vercel.app',
-  'http://localhost:5173'
-];
+// ── CORS Configuration (shared between Express and Socket.IO) ────────────
+const corsConfig = {
+  origin: [
+    'https://mulhimstudio.vercel.app',
+    'http://localhost:5173'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  credentials: true
+};
 
+// ── HTTP Server + Socket.IO ──────────────────────────────────────────────
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-    credentials: true
-  }
+  cors: corsConfig
 });
 
 app.set('io', io);
@@ -58,24 +60,17 @@ io.on('connection', (socket) => {
   });
 });
 
-const corsConfig = {
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('CORS not allowed'));
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  credentials: true
-};
+// ── Middleware ────────────────────────────────────────────────────────────
 app.use(cors(corsConfig));
-app.options('*', cors(corsConfig));
 app.use(express.json());
 app.use(requestLogger);
 
-initDB().catch(console.error);
+// ── Database ─────────────────────────────────────────────────────────────
+initDB().catch((err) => {
+  console.error('Database init failed:', err);
+});
 
+// ── API Routes ───────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/shoots', shootsRoutes);
 app.use('/api/users', usersRoutes);
@@ -90,13 +85,28 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }
 // Attach central error handler after all routes
 app.use(globalErrorHandler);
 
+// ── Static file serving (only if dist exists) ────────────────────────────
 const prodDist = path.join(__dirname, '../dist');
 const localDist = path.join(__dirname, '../../frontend/dist');
-const distPath = fs.existsSync(prodDist) ? prodDist : localDist;
+const distPath = fs.existsSync(prodDist) ? prodDist : (fs.existsSync(localDist) ? localDist : null);
 
-app.use(express.static(distPath));
+if (distPath) {
+  app.use(express.static(distPath));
+  app.use((req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
-app.use((req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+// ── Global crash protection ──────────────────────────────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught Exception:', err);
 });
-httpServer.listen(PORT, () => console.log(`Server running on port ${PORT} with WebSockets`));
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled Rejection:', reason);
+});
+
+// ── Start server (bind to 0.0.0.0 for Railway) ──────────────────────────
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on 0.0.0.0:${PORT} with WebSockets`);
+});
