@@ -49,7 +49,15 @@ io.on('connection', (socket) => {
   });
 });
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://mulhimstudio.vercel.app',
+    'http://localhost:5173'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  credentials: true
+}));
+app.options('*', cors());
 app.use(express.json());
 app.use(requestLogger);
 
