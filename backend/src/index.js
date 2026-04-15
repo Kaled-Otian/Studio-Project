@@ -26,9 +26,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const allowedOrigins = [
+  'https://mulhimstudio.vercel.app',
+  'http://localhost:5173'
+];
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: '*', methods: ['GET', 'POST', 'PATCH', 'DELETE'] }
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    credentials: true
+  }
 });
 
 app.set('io', io);
@@ -49,15 +58,19 @@ io.on('connection', (socket) => {
   });
 });
 
-app.use(cors({
-  origin: [
-    'https://mulhimstudio.vercel.app',
-    'http://localhost:5173'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+const corsConfig = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS not allowed'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true
-}));
-app.options('*', cors());
+};
+app.use(cors(corsConfig));
+app.options('*', cors(corsConfig));
 app.use(express.json());
 app.use(requestLogger);
 

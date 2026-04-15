@@ -26,6 +26,8 @@ export const SocketProvider = ({ children }) => {
     const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const newSocket = io(socketUrl, {
       auth: { token: localStorage.getItem('token') },
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
     });

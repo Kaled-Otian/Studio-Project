@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useAuth, api } from '../context/AuthContext';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import logo from '../assets/mulhim Final2.png';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -52,7 +51,7 @@ export default function Login() {
       <Toaster />
       <div className="glass glass-card" style={{ width: '100%', maxWidth: '400px' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <img src={logo} alt="Studio Logo" style={{ height: '300px', objectFit: 'contain', marginBottom: '16px' }} onError={(e) => e.target.style.display = 'none'} />
+          <img src="/logo.png" alt="Studio Logo" style={{ height: '300px', objectFit: 'contain', marginBottom: '16px' }} onError={(e) => e.target.style.display = 'none'} />
           <h1>Welcome Back</h1>
           <p>Login to your Studio Mulhim account</p>
         </div>

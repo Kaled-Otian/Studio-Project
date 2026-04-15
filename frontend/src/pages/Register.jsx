@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useAuth, api } from '../context/AuthContext';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import logo from '../assets/mulhim Final2.png';
 
 export default function Register() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
@@ -32,7 +31,7 @@ export default function Register() {
       <Toaster />
       <div className="glass glass-card" style={{ width: '100%', maxWidth: '420px' }}>
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <img src={logo} alt="Studio Logo" style={{ height: '300px', objectFit: 'contain', marginBottom: '16px' }} onError={e => e.target.style.display = 'none'} />
+          <img src="/logo.png" alt="Studio Logo" style={{ height: '300px', objectFit: 'contain', marginBottom: '16px' }} onError={e => e.target.style.display = 'none'} />
           <h1 style={{ marginBottom: '6px' }}>Create Account</h1>
           <p>You will be registered as a <strong style={{ color: 'var(--text-primary)' }}>User</strong>. Contact a Super Admin to promote your role.</p>
         </div>

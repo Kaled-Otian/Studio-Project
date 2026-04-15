@@ -3,7 +3,6 @@ import { useAuth, api } from '../context/AuthContext';
 import { LogOut, LayoutDashboard, Camera, Users as UsersIcon, Menu, X, User, ClipboardList, CalendarDays, Megaphone, MessageSquare } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { hasRole, ROLE_LABELS } from '../lib/roles';
-import logo from '../assets/mulhim Final2.png';
 
 export function ProtectedRoute() {
   const { user, loading, logout } = useAuth();
@@ -109,7 +108,7 @@ export function ProtectedRoute() {
           flexShrink: 0
         }}>
           <img
-            src={logo}
+            src="/logo.png"
             alt="Studio Logo"
             style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
             onError={(e) => { e.target.style.display = 'none'; }}
@@ -209,7 +208,7 @@ export function ProtectedRoute() {
               <Menu size={18} />
             </button>
             {!sidebarOpen && !isMobileScreen && (
-              <img src={logo} alt="Studio Logo" style={{ height: '22px', objectFit: 'contain', opacity: 0.8 }} />
+              <img src="/logo.png" alt="Studio Logo" style={{ height: '22px', objectFit: 'contain', opacity: 0.8 }} />
             )}
           </div>
           
