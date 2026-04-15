@@ -23,7 +23,7 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const socketUrl = import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin;
+    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const newSocket = io(socketUrl, {
       auth: { token: localStorage.getItem('token') },
       reconnectionAttempts: 10,

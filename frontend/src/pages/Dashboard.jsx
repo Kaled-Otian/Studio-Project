@@ -20,14 +20,21 @@ export default function Dashboard() {
 
   const fetchAll = useCallback(async () => {
     try {
-      // Fetch shoots and tasks independently — don't let analytics failure kill everything
-      const [shootsRes, tasksRes] = await Promise.all([
-        api.get('/shoots').catch(() => ({ data: [] })),
-        api.get('/tasks').catch(() => ({ data: [] }))
-      ]);
+      let all = [];
+      try {
+        const shootsRes = await api.get('/shoots');
+        all = shootsRes.data || [];
+      } catch {
+        // Shoots fail gracefully
+      }
 
-      const all = shootsRes.data || [];
-      const allTasks = tasksRes.data || [];
+      let allTasks = [];
+      try {
+        const tasksRes = await api.get('/tasks');
+        allTasks = tasksRes.data || [];
+      } catch {
+        // Tasks fail gracefully
+      }
 
       // Fetch analytics separately — this is optional and admin-only
       let analyticsData = null;

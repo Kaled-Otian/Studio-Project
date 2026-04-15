@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, api } from '../context/AuthContext';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import logo from '../assets/mulhim Final2.png';
@@ -20,7 +20,6 @@ export default function Login() {
     try {
       await login(email, password);
       toast.success('Logged in successfully!');
-      // Force imperative navigation to guarantee route change
       navigate('/', { replace: true });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to login');
@@ -37,20 +36,12 @@ export default function Login() {
     e.preventDefault();
     setForgotLoading(true);
     try {
-      const baseURL = import.meta.env.DEV ? 'http://localhost:5000/api' : '/api';
-      const res = await fetch(`${baseURL}/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send request');
-      
-      toast.success(data.message || 'If the email exists, a request has been submitted to Admins.');
+      const res = await api.post('/auth/forgot-password', { email: forgotEmail });
+      toast.success(res.data?.message || 'If the email exists, a request has been submitted to Admins.');
       setShowForgot(false);
       setForgotEmail('');
     } catch (err) {
-      toast.error(err.message || 'Error submitting request');
+      toast.error(err.response?.data?.error || err.message || 'Error submitting request');
     } finally {
       setForgotLoading(false);
     }

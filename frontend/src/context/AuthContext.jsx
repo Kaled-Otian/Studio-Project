@@ -3,8 +3,12 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : 'http://localhost:5000/api';
+
 export const api = axios.create({
-  baseURL: import.meta.env.DEV ? 'http://localhost:5000/api' : '/api',
+  baseURL: API_BASE,
 });
 
 // Attach JWT to every request
@@ -43,7 +47,7 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // Auto-logout on 401 (expired token)
+  // Auto-logout on 401 (expired token) and global error object normalization
   useEffect(() => {
     const interceptor = api.interceptors.response.use(
       (res) => res,
@@ -53,6 +57,33 @@ export function AuthProvider({ children }) {
           localStorage.removeItem('user');
           setUser(null);
         }
+        
+        // Normalize error message to prevent React Error #31 (Rendering objects)
+        let errMsg = 'An unexpected error occurred';
+        if (error.response?.data) {
+          if (typeof error.response.data.error === 'string') {
+            errMsg = error.response.data.error;
+          } else if (typeof error.response.data.message === 'string') {
+            errMsg = error.response.data.message;
+          } else if (typeof error.response.data === 'string') {
+            errMsg = error.response.data;
+          } else {
+            errMsg = JSON.stringify(error.response.data);
+          }
+        } else if (error.message) {
+          errMsg = error.message;
+        } else if (typeof error === 'string') {
+          errMsg = error;
+        }
+        
+        // Safely mutate error.response so UI always gets a string
+        if (error.response) {
+          if (!error.response.data) error.response.data = {};
+          error.response.data.error = errMsg;
+        } else {
+          error.message = errMsg;
+        }
+
         return Promise.reject(error);
       }
     );
